@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Payment Form - My App
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Make a Payment</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="number">Phone Number</label>
+            {{ form.number|as_crispy_field }}
+        </div>
+        <div class="form-group">
+            <label for="amount">Amount</label>
+            {{ form.amount|as_crispy_field }}
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+{% endblock %}

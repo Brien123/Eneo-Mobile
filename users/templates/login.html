@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %} <!-- Django CSRF token to prevent Cross-Site Request Forgery -->
+        {{ form.as_p }} <!-- Renders all form fields as paragraphs -->
+        <button type="submit" class="btn btn-primary">Login</button> <!-- Submit button -->
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Bill List - My App
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Your Bills</h2>
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>Bill ID</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bill in bills %}
+                <tr>
+                    <td>{{ bill.id }}</td>
+                    <td>{{ bill.amount }}</td>
+                    <td>{{ bill.due_date }}</td>
+                    <td>{{ bill.paid|yesno:"Paid,Not Paid" }}</td>
+                    <td>
+                        <a href="{% url 'billing:payment_processing' bill.id %}" class="btn btn-sm btn-primary">Pay</a>
+                        <a href="{% url 'billing:generate_invoice' bill.id %}" class="btn btn-sm btn-secondary">Generate Invoice</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
