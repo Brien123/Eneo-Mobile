@@ -3,11 +3,15 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from .models import Bill, Payment, Invoice
-from .forms import PaymentForm
+from users.models import User
+from .forms import PaymentForm, BuyForm
 from .utils import generate_invoice_pdf
 from dotenv import load_dotenv
+from django.http import HttpResponse
 from campay.sdk import Client as CamPayClient
 import os
+from django.utils import timezone
+import time
 
 load_dotenv()
 
@@ -75,13 +79,13 @@ class PaymentProcessingView(LoginRequiredMixin, View):
         
 #         # Saving the payment details
 #         payment = Payment.objects.create(
-#             user=request.user,
-#             bill=bill,
-#             number=number,
-#             currency=currency,
-#             amount=amount,
-#             means=collect['operator'],
-#             transaction_id=collect['reference']
+            # user=request.user,
+            # bill=bill,
+            # number=number,
+            # currency=currency,
+            # amount=amount,
+            # means=collect['operator'],
+            # transaction_id=collect['reference']
 #         )
 #         return collect, 'Payment successful'
 
@@ -94,3 +98,83 @@ class InvoiceGenerationView(LoginRequiredMixin, View):
         invoice = generate_invoice_pdf(bill)
         return redirect('billing:bill_list')
     
+class BuyView(LoginRequiredMixin, View):
+    def get(self, request):
+        form = BuyForm()
+        return render(request, 'buy_view.html', {'form': form})
+
+    def post(self, request):
+        form = BuyForm(request.POST)
+        if form.is_valid():
+            unit = form.cleaned_data['unit']
+            number = form.cleaned_data['number']
+            eneo_id = form.cleaned_data['eneo_id']
+            return self.buy(unit, number, eneo_id, request)
+        return render(request, 'buy_view.html', {'form': form})
+    
+    # def check_status(reference):
+    #     campay_status = campay.get_transaction_status({
+    #         "reference": reference,
+    #     })
+    #     return campay_status
+
+    def buy(self, unit, number, eneo_id, request):
+        try:
+            user = get_object_or_404(User, eneo_id=eneo_id)
+        except User.DoesNotExist:
+            return HttpResponse('User does not exist')
+
+        amount = self.calculate_amount(unit)
+
+        collect = campay.initCollect({
+            "amount": amount,
+            "currency": "XAF",
+            "from": number,
+            "description": f"Payment for {unit} kWh of electricity",
+            "external_reference": "",  # Your reference for this transaction
+        })
+
+        if collect is None or 'operator' not in collect or 'reference' not in collect:
+            # Log the collect response for debugging
+            print("Collect response:", collect)
+            return HttpResponse('Payment failed, please try again')
+        else:
+            bill = Bill.objects.create(
+                user=request.user,
+                amount=amount,
+                due_date=timezone.now(),
+                paid=True,
+                created_at=timezone.now()
+            )
+            bill.save()
+            
+            reference = collect.get('reference', 'Unknown')
+            payment = Payment.objects.create(
+                user=request.user,
+                bill=bill,
+                number=number,
+                currency='XAF',  # Assuming currency is XAF
+                amount=amount,
+                means=collect.get('operator', 'Unknown'),  # Use 'Unknown' if 'operator' is not present
+                transaction_id=reference  # Use 'Unknown' if 'reference' is not present
+            )
+            payment.save()
+            
+            time.sleep(5)
+
+            campay_status = campay.get_transaction_status({
+            "reference": reference,
+            })
+
+            status = campay_status.get('status')
+            if campay_status is not None and status is not None:
+                Payment.objects.filter(transaction_id=reference).update(paid=status)
+
+            return HttpResponse(f'Payment status: {status}')
+
+    def calculate_amount(self, unit):
+        if unit < 100:
+            return 8 * unit
+        else:
+            return 9 * unit
+        

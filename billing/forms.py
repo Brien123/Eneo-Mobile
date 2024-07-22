@@ -14,3 +14,9 @@ class PaymentForm(forms.ModelForm):
         super(PaymentForm, self).__init__(*args, **kwargs)
         self.fields['number'].label = "Phone Number"
         self.fields['amount'].label = "Amount to Pay"
+
+
+class BuyForm(forms.Form):
+    unit = forms.IntegerField(label='Units of Electricity')
+    number = forms.CharField(label='Phone Number')
+    eneo_id = forms.CharField(label='Eneo ID')
