@@ -125,6 +125,8 @@ class BuyView(LoginRequiredMixin, View):
             return HttpResponse('User does not exist')
 
         amount = self.calculate_amount(unit)
+        if not number.startswith('237'):
+            number = '237' + number
 
         collect = campay.initCollect({
             "amount": amount,

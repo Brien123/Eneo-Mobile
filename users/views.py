@@ -3,14 +3,22 @@ from django.contrib.auth import login, logout as django_logout
 from .forms import CustomUserCreationForm, CustomAuthenticationForm, EditProfileForm, ChangePhoneNumberForm
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import ModelBackend
 
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
-            return redirect('profile')  
+
+            # Determine the backend
+            backend = 'users.backends.PhoneNumberBackend'
+            user.backend = backend
+
+            # Log the user in
+            login(request, user, backend=backend)
+            return redirect('profile')
     else:
         form = CustomUserCreationForm()
 

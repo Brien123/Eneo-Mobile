@@ -9,3 +9,8 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = ['username', 'email', 'address', 'role', 'eneo_id']
+
+    def save(self, *args, **kwargs):
+        if not self.phone_number.startswith('+237'):
+            self.phone_number = '+237' + self.phone_number
+        super(User, self).save(*args, **kwargs)
