@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'users',
     'billing',
     'crispy_forms',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -135,3 +136,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 AUTHENTICATION_BACKENDS = ['users.backends.PhoneNumberBackend', 'django.contrib.auth.backends.ModelBackend']
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'   # mysql as broker
+CELERY_RESULT_BACKEND = 'django-db'  # MySQL as result backend
+

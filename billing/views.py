@@ -12,6 +12,7 @@ from campay.sdk import Client as CamPayClient
 import os
 from django.utils import timezone
 import time
+from .tasks import check_payment_status
 
 load_dotenv()
 
@@ -111,12 +112,6 @@ class BuyView(LoginRequiredMixin, View):
             eneo_id = form.cleaned_data['eneo_id']
             return self.buy(unit, number, eneo_id, request)
         return render(request, 'buy_view.html', {'form': form})
-    
-    # def check_status(reference):
-    #     campay_status = campay.get_transaction_status({
-    #         "reference": reference,
-    #     })
-    #     return campay_status
 
     def buy(self, unit, number, eneo_id, request):
         try:
@@ -161,18 +156,11 @@ class BuyView(LoginRequiredMixin, View):
                 transaction_id=reference  # Use 'Unknown' if 'reference' is not present
             )
             payment.save()
-            
             time.sleep(5)
 
-            campay_status = campay.get_transaction_status({
-            "reference": reference,
-            })
+            status = check_payment_status.delay(reference)
 
-            status = campay_status.get('status')
-            if campay_status is not None and status is not None:
-                Payment.objects.filter(transaction_id=reference).update(paid=status)
-
-            return HttpResponse(f'Payment status: {status}')
+            return HttpResponse(f'Payment initiated, status will be updated shortly.')
 
     def calculate_amount(self, unit):
         if unit < 100:
