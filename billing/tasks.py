@@ -1,5 +1,5 @@
 from celery import shared_task
-from .models import Payment
+from .models import Payment, Bill
 import time
 from campay.sdk import Client as CamPayClient
 from dotenv import load_dotenv
@@ -14,7 +14,7 @@ campay = CamPayClient({
 })
 
 @shared_task
-def check_payment_status(reference):
+def check_payment_status(reference, bill_id):
     max_attempts = 5
     attempt = 0
     status = None
@@ -27,10 +27,11 @@ def check_payment_status(reference):
         status = campay_status.get('status')
         if status == 'SUCCESSFUL':
             Payment.objects.filter(transaction_id=reference).update(paid=status)
+            Bill.objects.filter(id=bill_id).update(paid=True)
             break  # Exit the loop if we get a success status
         
         attempt += 1
-        time.sleep(5)  # Delay between attempts to avoid spamming the API
+        time.sleep(5)
 
     if status is None:
         print(f'Payment status could not be verified for reference {reference}.')

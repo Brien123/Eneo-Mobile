@@ -4,3 +4,4 @@ billing/__pycache__
 eneo/__pycache__
 users/__pycache__
 .env
+notifications/__pycache__

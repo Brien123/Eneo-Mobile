@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'billing',
     'crispy_forms',
     'django_celery_results',
+    'notifications',
 ]
 
 MIDDLEWARE = [

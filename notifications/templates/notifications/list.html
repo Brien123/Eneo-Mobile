@@ -1,0 +1,21 @@
+<!-- templates/notifications/list.html -->
+{% extends "base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<h2>Notifications</h2>
+<ul class="list-group">
+    {% for notification in notifications %}
+        <li class="list-group-item {% if not notification.read_at %}list-group-item-warning{% endif %}">
+            {{ notification.body }}
+            <small class="text-muted float-right">{{ notification.created_at }}</small>
+            {% if not notification.read_at %}
+                <a href="{% url 'mark_as_read' notification.id %}" class="btn btn-sm btn-primary float-right ml-3">Mark as read</a>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li class="list-group-item">No notifications.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

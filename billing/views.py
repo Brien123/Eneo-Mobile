@@ -140,10 +140,11 @@ class BuyView(LoginRequiredMixin, View):
                 user=request.user,
                 amount=amount,
                 due_date=timezone.now(),
-                paid=True,
+                paid=False,
                 created_at=timezone.now()
             )
             bill.save()
+            bill_id = bill.id
             
             reference = collect.get('reference', 'Unknown')
             payment = Payment.objects.create(
@@ -158,7 +159,7 @@ class BuyView(LoginRequiredMixin, View):
             payment.save()
             time.sleep(5)
 
-            status = check_payment_status.delay(reference)
+            status = check_payment_status.delay(reference, bill_id)
 
             return HttpResponse(f'Payment initiated, status will be updated shortly.')
 
