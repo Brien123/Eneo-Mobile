@@ -1,5 +1,6 @@
 from celery import shared_task
 from .models import Payment, Bill
+from users.models import User
 import time
 from campay.sdk import Client as CamPayClient
 from dotenv import load_dotenv
@@ -36,3 +37,13 @@ def check_payment_status(reference, bill_id):
     if status is None:
         print(f'Payment status could not be verified for reference {reference}.')
     return status
+
+@shared_task
+def check_unpaid_bills(user_id):
+    try:
+        user = User.objects.filter(id=user_id)
+        unpaid_bills = Bill.objects.filter(paid=0, user=user)
+        return unpaid_bills.exists() 
+    except Exception as e:
+        return f"error: {e}"
+    

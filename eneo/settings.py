@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     'crispy_forms',
     'django_celery_results',
     'notifications',
+    'django_celery_beat',
+    'rest_framework',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -74,6 +77,12 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
 
 WSGI_APPLICATION = 'eneo.wsgi.application'
 
@@ -138,6 +147,7 @@ AUTH_USER_MODEL = 'users.User'
 AUTHENTICATION_BACKENDS = ['users.backends.PhoneNumberBackend', 'django.contrib.auth.backends.ModelBackend']
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'   # mysql as broker
-CELERY_RESULT_BACKEND = 'django-db'  # MySQL as result backend
+CELERY_BROKER_URL = 'redis://localhost:6379/0'   # redis as broker
+CELERY_RESULT_BACKEND = 'django-db'  # result backend
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'  # scheduler
 
