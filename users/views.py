@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
+from rest_framework.authtoken.models import Token
 
 def register(request):
     if request.method == 'POST':
@@ -18,6 +19,7 @@ def register(request):
 
             # Log the user in
             login(request, user, backend=backend)
+            # token, created = Token.objects.get_or_create(user=user)
             return redirect('profile')
     else:
         form = CustomUserCreationForm()
