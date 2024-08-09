@@ -13,6 +13,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import get_object_or_404
+from users.models import User
+from django.db import transaction
 
 api = NinjaAPI()
 
@@ -41,7 +43,9 @@ class ChangePhoneNumberSchema(Schema):
     phone_number: str
     
 class ChangePasswordSchema(Schema):
-    password: str
+    old_password: str
+    new_password1: str
+    new_password2: str
     
 class TokenAuth(HttpBearer):
     def authenticate(self, request, token):
@@ -75,7 +79,7 @@ def register(request, payload: RegisterSchema):
             user = form.save()
             backend = 'users.backends.PhoneNumberBackend' 
             user.backend = backend
-            login(request, user, backend=backend)
+            login(request, user)
             token, created = Token.objects.get_or_create(user=user)
             return {'message': 'User successfully created', 'token': token.key}
         else:
@@ -142,4 +146,34 @@ def edit_number(request, payload: ChangePhoneNumberSchema):
     except Exception as e:
         return JsonResponse({'message': False, "Error": (e)})    
 
+
+@api.post('/edit-password', auth=TokenAuth())
+def edit_password(request, payload: ChangePasswordSchema):
+    try:
+        user = request.auth
+        form = CustomPasswordChangeForm(user, data={
+            'old_password': payload.old_password,
+            'new_password1': payload.new_password1,
+            'new_password2': payload.new_password2
+        })
+
+        if form.is_valid():
+            user = form.save()
+            return JsonResponse({'success': True, 'message': 'Password changed successfully', 'password': user.password})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
+    
+@api.get('/profile', auth=TokenAuth())
+def profile(request):
+    try:
+        user = request.auth
+        name = user.username
+        number = user.phone_number
+        email = user.email
+
+        return JsonResponse({'name': name, 'number': number, 'email': email})
+    except Exception as e:
+        return JsonResponse({'message': False, 'errors': (e)})
