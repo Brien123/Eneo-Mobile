@@ -1,6 +1,7 @@
 from ninja import NinjaAPI, Schema
 from users import views
 from users.forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm, ChangePhoneNumberForm, EditProfileForm
+from billing.forms import *
 from django.contrib.auth.backends import ModelBackend
 from rest_framework.authtoken.models import Token
 from users.backends import PhoneNumberBackend
@@ -14,9 +15,20 @@ from django.middleware.csrf import get_token
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import get_object_or_404
 from users.models import User
+from billing.models import *
+from billing.tasks import *
 from django.db import transaction
+import os
+from campay.sdk import Client as CamPayClient
 
 api = NinjaAPI()
+load_dotenv()
+
+campay = CamPayClient({
+    "app_username" : os.getenv('CAMPAY_USERNAME'),
+    "app_password" : os.getenv('CAMPAY_PASSWORD'),
+    "environment" : "DEV" #use "DEV" for demo mode or "PROD" for live mode
+})
 
 @api.get("/hello")
 def hello(request):
@@ -47,10 +59,21 @@ class ChangePasswordSchema(Schema):
     new_password1: str
     new_password2: str
     
+class PaymentSchema(Schema):
+    unit: str
+    number: str
+    eneo_id: str
+    
 class TokenAuth(HttpBearer):
     def authenticate(self, request, token):
         token_obj = get_object_or_404(Token, key=token)
         return token_obj.user
+
+def calculate_amount(unit):
+    if unit < 100:
+        return 8 * unit
+    else:
+        return 9 * unit
     
 
 @api.get("/get-csrf-token")
@@ -95,7 +118,11 @@ def login(request, payload: LoginSchema):
             'username': payload.phone_number,
             'password': payload.password
         }
-        form = CustomAuthenticationForm(request=request, data=form_data)
+        if form_data['username'].startswith("+237"):
+            form = CustomAuthenticationForm(request=request, data=form_data)
+        else:
+            form_data['username'] = "+237" + form_data['username']
+            form = CustomAuthenticationForm(request=request, data=form_data)
         
         if form.is_valid():
             user = form.get_user()
@@ -177,3 +204,79 @@ def profile(request):
         return JsonResponse({'name': name, 'number': number, 'email': email})
     except Exception as e:
         return JsonResponse({'message': False, 'errors': (e)})
+    
+
+@api.get('/energy_history', auth=TokenAuth())
+def energy(request):
+    try:
+        user = request.auth
+        units = Power.objects.filter(user=user).values('unit')
+        payments = Payment.objects.filter(user=user).values('amount')
+        
+        return JsonResponse({
+            'name': user.username,
+            'units': list(units),
+            'payments': list(payments)
+        })
+    except Exception as e:
+        return JsonResponse({'message': 'Failed to retrieve energy history', 'errors': str(e)}, status=400)
+    
+    
+@api.post('/buy', auth=TokenAuth())
+def buy(request, payload: PaymentSchema):
+    try:
+        user = request.auth
+        form = BuyForm(data={'unit': payload.unit, 'number': payload.number, 'eneo_id': payload.eneo_id})
+        
+        if not form.is_valid():
+            return JsonResponse({"message": "Invalid form data"}, status=400)
+
+        number = payload.number
+        if not number.startswith('237'):
+            number = '237' + number
+            
+        unit = int(payload.unit)
+        amount = calculate_amount(unit)
+        
+        # Initiate payment
+        collect = campay.initCollect({
+            "amount": amount,
+            "currency": "XAF",
+            "from": number,
+            "description": f"Payment for {unit} kWh of electricity",
+            "external_reference": "",
+        })
+        
+        if collect is None or 'operator' not in collect or 'reference' not in collect:
+            print("Collect response:", collect)
+            return JsonResponse({"message": "Payment failed, please try again"}, status=500)
+        
+        bill = Bill.objects.create(
+            user=user,
+            amount=amount,
+            due_date=timezone.now(),
+            paid=False,
+            created_at=timezone.now()
+        )
+        bill.save()
+        bill_id = bill.id
+        
+        reference = collect.get('reference', 'Unknown')
+        payment = Payment.objects.create(
+            user=user,
+            bill=bill,
+            number=number,
+            currency='XAF', 
+            amount=amount,
+            means=collect.get('operator', 'Unknown'),
+            transaction_id=reference  
+        )
+        payment.save()
+        time.sleep(5)
+        check_payment_status.delay(reference, bill_id, unit)  
+        return JsonResponse({"message": "Payment initiated, status will be updated shortly."})
+
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return JsonResponse({'message': 'Payment failed'}, status=500)

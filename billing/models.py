@@ -37,3 +37,16 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice {self.id} - {self.user.username}"
+    
+class Power(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    bill = models.ForeignKey(Bill, on_delete=models.CASCADE)
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE)
+    unit = models.IntegerField(default=0)
+    si_unit = models.CharField(max_length=3, default='KWh')
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"{unit} {si_unit} of electricity by {user.username}"
+
+    

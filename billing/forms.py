@@ -17,6 +17,6 @@ class PaymentForm(forms.ModelForm):
 
 
 class BuyForm(forms.Form):
-    unit = forms.IntegerField(label='Units of Electricity')
-    number = forms.CharField(label='Phone Number')
-    eneo_id = forms.CharField(label='Eneo ID')
+    unit = forms.IntegerField(label='', widget=forms.NumberInput(attrs={'placeholder':"Enter units"}))
+    number = forms.CharField(label='', widget=forms.TextInput(attrs={'placeholder':"Enter phone number"}))
+    eneo_id = forms.CharField(label='', widget=forms.NumberInput(attrs={'placeholder':"Enter ENEO ID"}))

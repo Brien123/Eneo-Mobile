@@ -15,8 +15,8 @@ class CustomUserCreationForm(UserCreationForm):
         return phone_number
 
 class CustomAuthenticationForm(AuthenticationForm):
-    username = forms.CharField(max_length=50, label='Phone Number')
-    password = forms.CharField(max_length=50, label='Password', strip=False, widget=forms.PasswordInput)
+    username = forms.CharField(max_length=50, label='', widget=forms.NumberInput(attrs={'placeholder':"Enter Phone Number"}))
+    password = forms.CharField(max_length=50, label='', strip=False, widget=forms.PasswordInput(attrs={'placeholder':"Enter Password"}))
 
     def clean(self):
         phone_number = self.cleaned_data.get('username')

@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from .models import Bill, Payment, Invoice
+from .models import Bill, Payment, Invoice, Power
 from users.models import User
 from .forms import PaymentForm, BuyForm
 from .utils import generate_invoice_pdf
@@ -39,13 +39,13 @@ class PaymentProcessingView(LoginRequiredMixin, View):
         form = PaymentForm(request.POST)
         if form.is_valid():
             payment = form.save(commit=False)
-            # Collect payment details
+            # payment details
             collect = campay.initCollect({
                 "amount": payment.amount,
                 "currency": "XAF",
                 "from": payment.number,
                 "description": f"Payment for Bill {bill.id}",
-                "external_reference": "",  # Your reference for this transaction
+                "external_reference": "",  
             })
 
             if collect is None:
@@ -65,33 +65,6 @@ class PaymentProcessingView(LoginRequiredMixin, View):
         return render(request, 'payment_form.html', {'form': form, 'bill': bill})
 
 
-# def collect_payment(amount, currency, number, description, request, bill):
-#     try:
-#         collect = Campay().initCollect({
-#             "amount": amount,  # The amount you want to collect
-#             "currency": currency,
-#             "from": number,  # Phone number to request amount from. Must include country code
-#             "description": description,
-#             "external_reference": "",  # Reference from the system initiating the transaction.
-#         })
-        
-#         if collect is None:
-#             return None, 'Payment failed, try again'
-        
-#         # Saving the payment details
-#         payment = Payment.objects.create(
-            # user=request.user,
-            # bill=bill,
-            # number=number,
-            # currency=currency,
-            # amount=amount,
-            # means=collect['operator'],
-            # transaction_id=collect['reference']
-#         )
-#         return collect, 'Payment successful'
-
-#     except Exception as e:
-#         return None, str(e)
 
 class InvoiceGenerationView(LoginRequiredMixin, View):
     def get(self, request, bill_id):
@@ -128,11 +101,11 @@ class BuyView(LoginRequiredMixin, View):
             "currency": "XAF",
             "from": number,
             "description": f"Payment for {unit} kWh of electricity",
-            "external_reference": "",  # Your reference for this transaction
+            "external_reference": "",  # reference for the transaction
         })
 
         if collect is None or 'operator' not in collect or 'reference' not in collect:
-            # Log the collect response for debugging
+
             print("Collect response:", collect)
             return HttpResponse('Payment failed, please try again')
         else:
@@ -151,15 +124,15 @@ class BuyView(LoginRequiredMixin, View):
                 user=request.user,
                 bill=bill,
                 number=number,
-                currency='XAF',  # Assuming currency is XAF
+                currency='XAF', 
                 amount=amount,
-                means=collect.get('operator', 'Unknown'),  # Use 'Unknown' if 'operator' is not present
-                transaction_id=reference  # Use 'Unknown' if 'reference' is not present
+                means=collect.get('operator', 'Unknown'),
+                transaction_id=reference  
             )
             payment.save()
             time.sleep(5)
 
-            status = check_payment_status.delay(reference, bill_id)
+            status = check_payment_status.delay(reference, bill_id, unit)
 
             return HttpResponse(f'Payment initiated, status will be updated shortly.')
 

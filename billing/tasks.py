@@ -1,5 +1,5 @@
 from celery import shared_task
-from .models import Payment, Bill
+from .models import Payment, Bill, Power
 from users.models import User
 import time
 from campay.sdk import Client as CamPayClient
@@ -15,7 +15,7 @@ campay = CamPayClient({
 })
 
 @shared_task
-def check_payment_status(reference, bill_id):
+def check_payment_status(reference, bill_id, unit):
     max_attempts = 5
     attempt = 0
     status = None
@@ -29,6 +29,14 @@ def check_payment_status(reference, bill_id):
         if status == 'SUCCESSFUL':
             Payment.objects.filter(transaction_id=reference).update(paid=status)
             Bill.objects.filter(id=bill_id).update(paid=True)
+            power = Power.objects.create(
+                    user=request.user,
+                    bill=bill,
+                    payment=payment,
+                    unit = unit,
+                    si_unit='KWh'
+                )
+            power.save()
             break  # Exit the loop if we get a success status
         
         attempt += 1
