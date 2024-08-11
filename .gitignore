@@ -5,3 +5,4 @@ eneo/__pycache__
 users/__pycache__
 .env
 notifications/__pycache__
+db.sqlite3

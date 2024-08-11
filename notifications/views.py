@@ -32,7 +32,7 @@ def mark_as_read(request, notification_id):
     notification = get_object_or_404(Notification, user=request.user, id=notification_id)
     notification.read_at = timezone.now()
     notification.save()
-    return redirect('notification_list')
+    return redirect('notifications:notification_list')
 
 
 @shared_task

@@ -8,7 +8,7 @@ class User(AbstractUser):
     eneo_id = models.CharField(max_length=15, blank=False, null=False)
 
     USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = ['username', 'email', 'address', 'role', 'eneo_id']
+    REQUIRED_FIELDS = ['username', 'email', 'address', 'eneo_id']
 
     def save(self, *args, **kwargs):
         if not self.phone_number.startswith('+237'):

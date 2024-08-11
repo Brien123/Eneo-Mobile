@@ -4,10 +4,57 @@
 {% block title %}Register{% endblock %}
 
 {% block content %}
-    <h2>Register</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Register</button>
-    </form>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header text-center bg-success text-white">
+                    <h2>Register</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="d-flex flex-column align-items-center">
+                        {% csrf_token %}
+                        <div class="form-group w-75">
+                            {{ form.username.label_tag }}
+                            {{ form.username }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.email.label_tag }}
+                            {{ form.email }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.phone_number.label_tag }}
+                            {{ form.phone_number }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.address.label_tag }}
+                            {{ form.address }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.role.label_tag }}
+                            {{ form.role }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.eneo_id.label_tag }}
+                            {{ form.eneo_id }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.password1.label_tag }}
+                            {{ form.password1 }}
+                        </div>
+                        <div class="form-group w-75">
+                            {{ form.password2.label_tag }}
+                            {{ form.password2 }}
+                        </div>
+                        <button type="submit" class="btn btn-success btn-block w-75">Register</button>
+                    </form>
+                </div>
+            </div>
+            <p class="text-center mt-3">
+                Already have an account? 
+                <a href="{% url 'login' %}" class="text-success">Login here</a>
+            </p>
+        </div>
+    </div>
+</div>
 {% endblock %}

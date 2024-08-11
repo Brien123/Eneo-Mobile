@@ -20,7 +20,7 @@ def register(request):
             # Log the user in
             login(request, user, backend=backend)
             # token, created = Token.objects.get_or_create(user=user)
-            return redirect('profile')
+            return redirect('home')
     else:
         form = CustomUserCreationForm()
 
@@ -36,14 +36,14 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect('profile')
+            return redirect('home')
     else:
         form = CustomAuthenticationForm()
     return render(request, 'login.html', {'form': form})
 
 @login_required
 def home(request):
-    return render(request, 'home.html')
+    return render(request, 'home.html', {'user': request.user})
 
 def logout(request):
     django_logout(request)

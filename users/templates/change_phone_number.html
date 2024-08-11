@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Edit Profile{% endblock %}
+{% block title %}Change Phone Number{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -9,16 +9,16 @@
         <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-header text-center bg-success text-white">
-                    <h2>Edit Profile</h2>
+                    <h2>Change Phone Number</h2>
                 </div>
                 <div class="card-body">
                     <form method="post" class="d-flex flex-column align-items-center">
                         {% csrf_token %}
                         <div class="form-group w-75">
-                            {{ form.username.errors }}
-                            {{ form.username }}
+                            {{ form.phone_number.errors }}
+                            {{ form.phone_number }}
                         </div>
-                        <button type="submit" class="btn btn-success btn-block w-75">Save Changes</button>
+                        <button type="submit" class="btn btn-success btn-block w-75">Update Phone Number</button>
                     </form>
                 </div>
             </div>

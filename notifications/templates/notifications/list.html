@@ -11,7 +11,7 @@
             {{ notification.body }}
             <small class="text-muted float-right">{{ notification.created_at }}</small>
             {% if not notification.read_at %}
-                <a href="{% url 'mark_as_read' notification.id %}" class="btn btn-sm btn-primary float-right ml-3">Mark as read</a>
+                <a href="{% url 'notifications:mark_as_read' notification.id %}" class="btn btn-sm btn-primary float-right ml-3">Mark as read</a>
             {% endif %}
         </li>
     {% empty %}

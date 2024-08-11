@@ -22,7 +22,7 @@ from .api import api
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('users.urls')),
-    path('pay/', include('billing.urls')),
-    path('notify/', include('notifications.urls')),
+    path('pay/', include('billing.urls',  namespace='pay')),
+    path('notify/', include('notifications.urls', namespace='notifications')),
     path("api/", api.urls),
 ]
