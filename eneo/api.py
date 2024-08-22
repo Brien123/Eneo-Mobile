@@ -1,4 +1,7 @@
-from ninja import NinjaAPI, Schema
+from ninja import NinjaAPI, Schema, File
+from typing import Optional
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from users import views
 from users.forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm, ChangePhoneNumberForm, EditProfileForm
 from billing.forms import *
@@ -14,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import get_object_or_404
-from users.models import User
+from users.models import *
 from billing.models import *
 from billing.tasks import *
 from django.db import transaction
@@ -63,6 +66,11 @@ class PaymentSchema(Schema):
     unit: str
     number: str
     eneo_id: str
+    
+class MessageSchema(Schema):
+    message: str
+    read_status: Optional[bool] = None
+    images: Optional[str] = None
     
 class TokenAuth(HttpBearer):
     def authenticate(self, request, token):
@@ -206,7 +214,7 @@ def profile(request):
         return JsonResponse({'message': False, 'errors': (e)})
     
 
-@api.get('/energy_history', auth=TokenAuth())
+@api.get('/energy-history', auth=TokenAuth())
 def energy(request):
     try:
         user = request.auth
@@ -221,6 +229,28 @@ def energy(request):
     except Exception as e:
         return JsonResponse({'message': 'Failed to retrieve energy history', 'errors': str(e)}, status=400)
     
+    
+@api.post('/create-message', auth=TokenAuth())
+def support(request):
+    user = request.auth  # Assuming TokenAuth returns a user object
+
+    # Extract data from request
+    message_text = request.POST.get('message')
+    read_status = request.POST.get('read_status') == 'true'
+    image_file = request.FILES.get('images')
+
+    # Save the message
+    try:
+        message = Messages.objects.create(
+            user=user,
+            message=message_text,
+            read_status=read_status,
+            images=image_file  # This handles the image upload
+        )
+        return {"success": True, "message": "Message created successfully", "id": message.id}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+         
     
 @api.post('/buy', auth=TokenAuth())
 def buy(request, payload: PaymentSchema):

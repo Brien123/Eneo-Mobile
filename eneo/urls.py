@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from users import views
 from .api import api
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +27,4 @@ urlpatterns = [
     path('pay/', include('billing.urls',  namespace='pay')),
     path('notify/', include('notifications.urls', namespace='notifications')),
     path("api/", api.urls),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
