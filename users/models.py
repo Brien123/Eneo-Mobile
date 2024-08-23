@@ -25,3 +25,12 @@ class Messages(models.Model):
 
     def __str__(self):
         return f"Message from {self.user.username}"
+
+class Reply(models.Model):
+    message = models.ForeignKey(Messages, on_delete=models.CASCADE, related_name='replies')
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='replies')
+    reply = models.TextField(max_length=2000)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Reply by {self.admin.username} - {self.created_at}"
