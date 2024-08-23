@@ -1,4 +1,7 @@
-from ninja import NinjaAPI, Schema
+from ninja import NinjaAPI, Schema, File
+from typing import Optional
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from users import views
 from users.forms import CustomUserCreationForm, CustomAuthenticationForm, CustomPasswordChangeForm, ChangePhoneNumberForm, EditProfileForm
 from billing.forms import *
@@ -14,12 +17,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import get_object_or_404
-from users.models import User
+from users.models import *
 from billing.models import *
 from billing.tasks import *
 from django.db import transaction
 import os
 from campay.sdk import Client as CamPayClient
+from pydantic import BaseModel
 
 api = NinjaAPI()
 load_dotenv()
@@ -63,6 +67,21 @@ class PaymentSchema(Schema):
     unit: str
     number: str
     eneo_id: str
+    
+class MessageSchema(Schema):
+    message: str
+    read_status: Optional[bool] = None
+    images: Optional[str] = None
+    
+class ReplyOutSchema(Schema):
+    id: int
+    admin: str
+    reply: str
+    created_at: str
+    
+class ReplyCreateSchema(Schema):
+    message_id: int
+    reply: str
     
 class TokenAuth(HttpBearer):
     def authenticate(self, request, token):
@@ -206,7 +225,7 @@ def profile(request):
         return JsonResponse({'message': False, 'errors': (e)})
     
 
-@api.get('/energy_history', auth=TokenAuth())
+@api.get('/energy-history', auth=TokenAuth())
 def energy(request):
     try:
         user = request.auth
@@ -221,6 +240,87 @@ def energy(request):
     except Exception as e:
         return JsonResponse({'message': 'Failed to retrieve energy history', 'errors': str(e)}, status=400)
     
+    
+@api.post('/create-message', auth=TokenAuth())
+def support(request):
+    user = request.auth 
+    message_text = request.POST.get('message')
+    read_status = request.POST.get('read_status') == 'true'
+    image_file = request.FILES.get('images')
+
+    try:
+        message = Messages.objects.create(
+            user=user,
+            message=message_text,
+            read_status=read_status,
+            images=image_file 
+        )
+        return {"success": True, "message": "Message created successfully", "id": message.id}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+   
+    
+@api.get('/messages', auth=TokenAuth())
+def get_messages(request):
+    user = request.auth
+    messages = Messages.objects.filter(user=user)
+    return [
+        {
+            "id": message.id,
+            "user": message.user.username,
+            "message": message.message,
+            "read_status": message.read_status,
+            "images": message.images.url if message.images else None,
+            "created_at": message.created_at.isoformat()
+        }
+        for message in messages
+    ]
+    
+    
+@api.post('/reply-message', auth=TokenAuth())
+def reply_message(request, payload: ReplyCreateSchema):
+    user = request.auth
+    try:
+        message = Messages.objects.get(id=payload.message_id)
+        reply = Reply.objects.create(
+            message=message,
+            admin=user,
+            reply=payload.reply
+        )
+        return {"success": True, "id": reply.id}
+    except Message.DoesNotExist:
+        return {"success": False, "error": "Message not found"}
+ 
+    
+@api.get('/chat', auth=TokenAuth())
+def get_chat(request):
+    user = request.auth
+    messages = Messages.objects.filter(user=user)
+    response = []
+    
+    for message in messages:
+        replies = Reply.objects.filter(message=message)
+        message_with_replies = {
+            "id": message.id,
+            "user": message.user.username,
+            "message": message.message,
+            "read_status": message.read_status,
+            "images": message.images.url if message.images else None,
+            "created_at": message.created_at.isoformat(),
+            "replies": [
+                {
+                    "id": reply.id,
+                    "admin": reply.admin.username,
+                    "reply": reply.reply,
+                    "created_at": reply.created_at.isoformat()
+                }
+                for reply in replies
+            ]
+        }
+        response.append(message_with_replies)
+    
+    return response
+         
     
 @api.post('/buy', auth=TokenAuth())
 def buy(request, payload: PaymentSchema):
